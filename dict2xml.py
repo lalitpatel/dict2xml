@@ -64,12 +64,12 @@ class Dict2XML(object):
                 for key in attributes.keys():
                     attributes[key] = self._serialize_value(attributes[key])
                 node.attrib.update(attributes)
-            if '@value' in value:
-                logger.debug("Found @value")
+            if '@text' in value:
+                logger.debug("Found @text")
                 if force_cdata:
-                    node.text = etree.CDATA(self._serialize_value(value.pop('@value')))
+                    node.text = etree.CDATA(self._serialize_value(value.pop('@text')))
                 else:
-                    node.text = self._serialize_value(value.pop('@value'))
+                    node.text = self._serialize_value(value.pop('@text'))
             if '@cdata' in value:
                 logger.debug("Found @cdata")
                 node.text = etree.CDATA(self._serialize_value(value.pop('@cdata')))
@@ -120,7 +120,7 @@ books_empty = {}
 
 books_value = 1984  # or
 books_value = {
-    '@value': 1984
+    '@text': 1984
 }
 """
 <books>1984</books>
@@ -142,7 +142,7 @@ books_attributes_value = {
     '@attributes': {
         'type': 'fiction'
     },
-    '@value': 1984
+    '@text': 1984
 }
 """
 <books type="fiction">1984</books>
@@ -243,7 +243,7 @@ books = OrderedDict({
                 '@attributes': {
                     'discount': '10%'
                 },
-                '@value': '$18.00'
+                '@text': '$18.00'
             },
             'isbn': 341232132L
         }

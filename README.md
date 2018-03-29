@@ -3,16 +3,16 @@ Converts a Python dictionary to a valid XML string. Supports attributes and CDAT
 
 ### Usage
 ```python
-from dict-to-xml import create_xml
+from dict2xml import Dict2XML
 
-books = {
+book = {
     '@attributes': {
         'type': 'fiction'
     },
-    '@value': 1984
+    '@text': 1984
 }
-print create_xml('books', books)
-# <books type="fiction">1984</books>
+print(Dict2XML('book', book).to_xml_string(xml_declaration=False))
+# <book type="fiction">1984</book>
 ```
 
 ### Examples
@@ -20,7 +20,7 @@ print create_xml('books', books)
 ```python
 books_empty = {}
 # <books/>
-
+```
 #### Attributes can be added to any node by having a `@attributes` key in the dict
 ```python
 books_attributes = {
@@ -35,11 +35,11 @@ books_attributes = {
 <books type="fiction" year="2011" bestsellers="true"/>
 ```
 #### XML with text nodes
-Text modes can be added to any node by directly assigning the value or by having a `@values` (or `@cdata`) key in the dict
+Text modes can be added to any node by directly assigning the value or by having a `@text` (or `@cdata`) key in the dict
 ```python
 books_value = 1984  # or
 books_value = {
-    '@value': 1984
+    '@text': 1984
 }
 ```
 ```xml
@@ -51,7 +51,7 @@ books_attributes = {
     '@attributes': {
         'type': 'fiction'
     },
-    '@value': 1984
+    '@text': 1984
 }
 ```
 ```xml
@@ -94,17 +94,17 @@ books_with_out_attributes = {
     'book': [
         {
             'title': '1984',
-            'isbn': 973523442132L,
+            'isbn': 973534,
         },
         {
             'title': {'@cdata': 'Foundation'},
             'price': '$15.61',
-            'isbn': 57352342132L,
+            'isbn': 573234,
         },
         {
             'title': {'@cdata': 'Stranger in a Strange Land'},
             'price': '$18.00',
-            'isbn': 341232132L
+            'isbn': 341232
         }
     ]
 }
@@ -127,9 +127,10 @@ books_with_out_attributes = {
   </book>
 </books>
 ```
-#### Complex example with many different data types
+#### Complex example with many different data types. 
 ```python
-books = {
+from collections import OrderedDict
+books = OrderedDict({
     '@attributes': {
         'type': 'fiction'
     },
@@ -140,7 +141,7 @@ books = {
                 'available': None
             },
             'title': '1984',
-            'isbn': 973523442132L,
+            'isbn': 972132L,
         },
         {
             '@attributes': {
@@ -149,7 +150,7 @@ books = {
             },
             'title': {'@cdata': 'Foundation'},
             'price': '$15.61',
-            'isbn': 57352342132L,
+            'isbn': 5735232L,
         },
         {
             '@attributes': {
@@ -161,12 +162,12 @@ books = {
                 '@attributes': {
                     'discount': '10%'
                 },
-                '@value': '$18.00'
+                '@text': '$18.00'
             },
-            'isbn': 341232132L
+            'isbn': 3412332L
         }
     ]
-}
+})
 ```
 ```xml
 <books type="fiction">
