@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-"""
-Converts a Python dictionary valid XML string.
-"""
-
 from __future__ import unicode_literals
 
 import datetime
 import logging
+from collections import OrderedDict
 from types import NoneType
 
 from lxml import etree
@@ -19,70 +16,103 @@ version = __version__
 logger = logging.getLogger("v2")
 
 
-def to_string(root, encoding='UTF-8', pretty_print=True, xml_declaration=False):
-    return etree.tostring(root, method='xml', xml_declaration=xml_declaration, pretty_print=pretty_print,
-                          encoding=encoding)
+class Dict2XML(object):
+    """
+    Converts a Python dictionary to XML using the lxml.etree library
+    For more info on see: http://lxml.de/tutorial.html
+    """
+    _xml = None
 
+    def __init__(self, root_node_name, dictionary, force_cdata=False):
+        """
+        Converts a Python dictionary to XML using the lxml.etree library
+        :param root_node_name: name of the root node
+        :param dictionary: instance of a dict object that needs to be converted
+        :param force_cdata: if true, all the text nodes will be wrapped in <!CDATA[[ ]]>
+        """
+        self._xml = etree.Element(root_node_name)
+        self._convert(self._xml, dictionary, force_cdata=force_cdata)
 
-def create_xml(root_name, dictionary, encoding='UTF-8', pretty_print=True, xml_declaration=False, force_cdata=False):
-    xml_root = etree.Element(root_name)
-    convert(xml_root, dictionary, force_cdata=force_cdata)
-    logger.debug(to_string(xml_root, encoding=encoding, pretty_print=pretty_print, xml_declaration=xml_declaration))
-    return to_string(xml_root, encoding=encoding, pretty_print=pretty_print, xml_declaration=xml_declaration)
+    def to_xml_string(self, encoding='UTF-8', pretty_print=True, xml_declaration=True):
+        """
+        Convert the etree object into string
+        :param encoding: specify the encoding for the XML String. Default 'UTF-8'
+        :param pretty_print: pretty print the XML wth indentation. Default True
+        :param xml_declaration: Print the XML Declaration tag in the output. Default True
+        :return: XML string
+        """
+        return etree.tostring(self._xml, xml_declaration=xml_declaration, pretty_print=pretty_print,
+                              encoding=encoding, method='xml')
 
+    def get_etree_object(self):
+        return self._xml
 
-def convert(node, value, force_cdata=False):
-    logger.debug("{} {}".format(node.tag, to_string(node)))
-    logger.debug(value)
-    if isinstance(value, dict):
-        if '@attributes' in value:
-            logger.debug("Found @attributes")
-            attributes = value.pop('@attributes')
-            for key in attributes.keys():
-                attributes[key] = serialize_value(attributes[key])
-            node.attrib.update(attributes)
-        if '@value' in value:
-            logger.debug("Found @value")
-            if force_cdata:
-                node.text = etree.CDATA(serialize_value(value.pop('@value')))
-            else:
-                node.text = serialize_value(value.pop('@value'))
-        if '@cdata' in value:
-            logger.debug("Found @cdata")
-            node.text = etree.CDATA(serialize_value(value.pop('@cdata')))
-        for key, val in value.items():
-            logger.debug('Creating sub node ' + key)
-            sub_node = etree.SubElement(node, key)
-            convert(sub_node, val, force_cdata)
-    elif isinstance(value, list):
-        logger.debug("Value is an array of len {}".format(len(value)))
-        tag = node.tag
-        parent = node.getparent()
-        # remove the current code as we will recreate a array of nodes below
-        parent.remove(node)
-        for val in value:
-            sub_node = etree.SubElement(parent, tag)
-            logger.debug("{} {}".format(sub_node.tag, to_string(sub_node)))
-            logger.debug(val)
-            convert(sub_node, val, force_cdata)
-    else:
-        if force_cdata:
-            node.text = etree.CDATA(serialize_value(value))
+    def _convert(self, node, value, force_cdata=False):
+        """
+        Recursively traverse the dictionary to convert it to a XML
+        :param node: the parent XML node
+        :param value: value of the Node
+        :param force_cdata: if true, all the text nodes will be wrapped in <!CDATA[[ ]]>
+        :return: None
+        """
+        logger.debug("Parent Tag {} {}".format(node.tag, self._to_string(node)))
+        logger.debug("Value {}".format(value))
+        if isinstance(value, dict):
+            if '@attributes' in value:
+                logger.debug("Found @attributes")
+                attributes = value.pop('@attributes')
+                for key in attributes.keys():
+                    attributes[key] = self._serialize_value(attributes[key])
+                node.attrib.update(attributes)
+            if '@value' in value:
+                logger.debug("Found @value")
+                if force_cdata:
+                    node.text = etree.CDATA(self._serialize_value(value.pop('@value')))
+                else:
+                    node.text = self._serialize_value(value.pop('@value'))
+            if '@cdata' in value:
+                logger.debug("Found @cdata")
+                node.text = etree.CDATA(self._serialize_value(value.pop('@cdata')))
+            for key, val in value.items():
+                logger.debug('Creating sub node ' + key)
+                sub_node = etree.SubElement(node, key)
+                self._convert(sub_node, val, force_cdata)
+        elif isinstance(value, list):
+            # array of nodes
+            tag = node.tag
+            parent = node.getparent()  # remove the current code as we will recreate a array of nodes below
+            parent.remove(node)
+            for val in value:
+                sub_node = etree.SubElement(parent, tag)
+                self._convert(sub_node, val, force_cdata)
         else:
-            node.text = serialize_value(value)
+            # text node
+            if force_cdata:
+                node.text = etree.CDATA(self._serialize_value(value))
+            else:
+                node.text = self._serialize_value(value)
 
+    @staticmethod
+    def _to_string(node):
+        """
+        Helper method to pretty print xml nodes
+        :param node: etree XML Node to be printed.
+        :return: string
+        """
+        return etree.tostring(node, xml_declaration=False, pretty_print=True, encoding='UTF-8', method='xml')
 
-def serialize_value(val):
-    """Returns the santizized value for to be used in XML"""
-    # if type(val).__name__ not in ('str', 'unicode','int', 'long','float','bool', 'NoneType'):
-    #     ValueError('Do not know how to serialize the value of type {}'.format(type(val).__name__))
-    if type(val) == bool:
-        return 'true' if val else 'false'
-    if type(val) == NoneType:
-        return ''
-    if type(val) == datetime.datetime:
-        return val.isoformat()
-    return str(val)
+    @staticmethod
+    def _serialize_value(value):
+        """Returns the serlialized value for to be used in XML"""
+        # if type(val).__name__ not in ('str', 'unicode','int', 'long','float','bool', 'NoneType'):
+        #     ValueError('Do not know how to serialize the value of type {}'.format(type(val).__name__))
+        if type(value) == bool:
+            return 'true' if value else 'false'
+        if type(value) == NoneType:
+            return ''
+        if type(value) == datetime.datetime:
+            return value.isoformat()
+        return str(value)
 
 
 books_empty = {}
@@ -181,7 +211,7 @@ books_with_out_attributes = {
 </books>
 """
 
-books = {
+books = OrderedDict({
     '@attributes': {
         'type': 'fiction'
     },
@@ -218,7 +248,8 @@ books = {
             'isbn': 341232132L
         }
     ]
-}
+})
+
 """<books type="fiction">
   <book available="" author="George Orwell">
     <isbn>973523442132</isbn>
@@ -238,12 +269,12 @@ books = {
 """
 
 if __name__ == "__main__":
-    print create_xml('books_empty', books_empty)
-    print create_xml('books_value', books_value)
-    print create_xml('books_attributes', books_attributes)
-    print create_xml('books_attributes_value', books_attributes_value)
-    print create_xml('books_child', books_child)
-    print create_xml('books_children', books_children)
-    print create_xml('books_with_out_attributes', books_with_out_attributes)
-    print create_xml('books_with_out_attributes', books_with_out_attributes)
-    print create_xml('books', books, force_cdata=True)
+    print Dict2XML('books_empty', books_empty).to_xml_string()
+    print Dict2XML('books_value', books_value).to_xml_string()
+    print Dict2XML('books_attributes', books_attributes).to_xml_string()
+    print Dict2XML('books_attributes_value', books_attributes_value).to_xml_string()
+    print Dict2XML('books_child', books_child).to_xml_string()
+    print Dict2XML('books_children', books_children).to_xml_string()
+    print Dict2XML('books_with_out_attributes', books_with_out_attributes).to_xml_string()
+    print Dict2XML('books_with_out_attributes', books_with_out_attributes).to_xml_string()
+    print Dict2XML('books', books, force_cdata=True).to_xml_string()
