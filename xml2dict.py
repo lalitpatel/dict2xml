@@ -12,7 +12,7 @@ from lxml import etree
 __version__ = '0.1'
 version = __version__
 
-logger = logging.getLogger("v2")
+logger = logging.getLogger("xml2dict")
 
 
 class XML2Dict(object):
@@ -26,45 +26,42 @@ class XML2Dict(object):
         parser = etree.XMLParser(ns_clean=ns_clean, remove_blank_text=True)
         self._xml = etree.XML(xml, parser)
 
-    def to_dict(self):
-        return dict(self._convert(self._xml))
-
-    def to_ordered_dict(self):
-        return self._convert(self._xml)
+    def to_dict(self, ordered_dict=False):
+        return self._convert(self._xml, ordered_dict)
 
     def get_etree_object(self):
         return self._xml
 
-    def _convert(self, node):
+    def _convert(self, node, ordered_dict=False):
         logger.debug("Parent Tag {} {}".format(node.tag, self._to_string(node)))
-        ordered_dict = {}
+        xml_dict = OrderedDict() if ordered_dict else {}
 
         # add attributes and text nodes
         if len(node.attrib):
-            ordered_dict['@attributes'] = node.attrib
+            xml_dict['@attributes'] = node.attrib
         if node.text:
-            ordered_dict['@text'] = node.text
+            xml_dict['@text'] = node.text
 
         # add children if any
         if len(node):
             for child in node:
-                if child.tag not in ordered_dict:
+                if child.tag not in xml_dict:
                     # assume there will be more than one of a given child node
-                    ordered_dict[child.tag] = []
-                ordered_dict[child.tag].append(self._convert(child))
+                    xml_dict[child.tag] = []
+                xml_dict[child.tag].append(self._convert(child, ordered_dict))
 
             # flatten the arrays
-            # print(ordered_dict.items())
-            for key, value in ordered_dict.items():
+            # print(xml_dict.items())
+            for key, value in xml_dict.items():
                 if type(value) == list and len(value) == 1:
                     # print("{}: {}".format(key, value))
-                    ordered_dict[key] = value[0]
+                    xml_dict[key] = value[0]
 
         # flatten the dict if it just has the @text key
-        if len(ordered_dict) == 1 and '@text' in ordered_dict:
-            ordered_dict = ordered_dict['@text']
+        if len(xml_dict) == 1 and '@text' in xml_dict:
+            xml_dict = xml_dict['@text']
 
-        return ordered_dict
+        return xml_dict
 
     @staticmethod
     def _to_string(node):
@@ -135,4 +132,4 @@ books = """<books type="fiction">
 """
 
 if __name__ == "__main__":
-    pprint(XML2Dict(books).to_dict())
+    pprint(XML2Dict(books).to_dict(ordered_dict=True))

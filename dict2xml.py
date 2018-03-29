@@ -3,17 +3,17 @@
 
 from __future__ import unicode_literals
 
-import datetime
 import logging
 from collections import OrderedDict
 from types import NoneType
 
+import datetime
 from lxml import etree
 
 __version__ = '0.1'
 version = __version__
 
-logger = logging.getLogger("v2")
+logger = logging.getLogger("dict2xml")
 
 
 class Dict2XML(object):
