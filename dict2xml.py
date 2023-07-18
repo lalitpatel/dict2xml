@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from __future__ import unicode_literals
-
-import logging
-from collections import OrderedDict
-from types import NoneType
 
 import datetime
+import logging
+from collections import OrderedDict
+from typing import Any
+
 from lxml import etree
 
 __version__ = '0.1'
@@ -102,13 +101,13 @@ class Dict2XML(object):
         return etree.tostring(node, xml_declaration=False, pretty_print=True, encoding='UTF-8', method='xml')
 
     @staticmethod
-    def _serialize_value(value):
+    def _serialize_value(value: Any):
         """Returns the serlialized value for to be used in XML"""
         # if type(val).__name__ not in ('str', 'unicode','int', 'long','float','bool', 'NoneType'):
         #     ValueError('Do not know how to serialize the value of type {}'.format(type(val).__name__))
         if type(value) == bool:
             return 'true' if value else 'false'
-        if type(value) == NoneType:
+        if type(value) == type(None):
             return ''
         if type(value) == datetime.datetime:
             return value.isoformat()
@@ -116,7 +115,9 @@ class Dict2XML(object):
 
 
 books_empty = {}
-# <books/>
+"""
+<books/>
+"""
 
 books_value = 1984  # or
 books_value = {
@@ -178,17 +179,17 @@ books_with_out_attributes = {
     'book': [
         {
             'title': '1984',
-            'isbn': 973523442132L,
+            'isbn': 973523442132,
         },
         {
             'title': {'@cdata': 'Foundation'},
             'price': '$15.61',
-            'isbn': 57352342132L,
+            'isbn': 57352342132,
         },
         {
             'title': {'@cdata': 'Stranger in a Strange Land'},
             'price': '$18.00',
-            'isbn': 341232132L
+            'isbn': 341232132
         }
     ]
 }
@@ -222,7 +223,7 @@ books = OrderedDict({
                 'available': None
             },
             'title': '1984',
-            'isbn': 973523442132L,
+            'isbn': 973523442132,
         },
         {
             '@attributes': {
@@ -231,7 +232,7 @@ books = OrderedDict({
             },
             'title': {'@cdata': 'Foundation'},
             'price': '$15.61',
-            'isbn': 57352342132L,
+            'isbn': 57352342132,
         },
         {
             '@attributes': {
@@ -245,7 +246,7 @@ books = OrderedDict({
                 },
                 '@text': '$18.00'
             },
-            'isbn': 341232132L
+            'isbn': 341232132
         }
     ]
 })
@@ -269,12 +270,12 @@ books = OrderedDict({
 """
 
 if __name__ == "__main__":
-    print Dict2XML('books_empty', books_empty).to_xml_string()
-    print Dict2XML('books_value', books_value).to_xml_string()
-    print Dict2XML('books_attributes', books_attributes).to_xml_string()
-    print Dict2XML('books_attributes_value', books_attributes_value).to_xml_string()
-    print Dict2XML('books_child', books_child).to_xml_string()
-    print Dict2XML('books_children', books_children).to_xml_string()
-    print Dict2XML('books_with_out_attributes', books_with_out_attributes).to_xml_string()
-    print Dict2XML('books_with_out_attributes', books_with_out_attributes).to_xml_string()
-    print Dict2XML('books', books, force_cdata=True).to_xml_string()
+    print(Dict2XML("books_empty", books_empty).to_xml_string())
+    print(Dict2XML("books_value", books_value).to_xml_string())
+    print(Dict2XML("books_attributes", books_attributes).to_xml_string())
+    print(Dict2XML("books_attributes_value", books_attributes_value).to_xml_string())
+    print(Dict2XML("books_child", books_child).to_xml_string())
+    print(Dict2XML("books_children", books_children).to_xml_string())
+    print(Dict2XML("books_with_out_attributes", books_with_out_attributes).to_xml_string())
+    print(Dict2XML("books_with_out_attributes", books_with_out_attributes).to_xml_string())
+    print(Dict2XML("books", books, force_cdata=True).to_xml_string())
